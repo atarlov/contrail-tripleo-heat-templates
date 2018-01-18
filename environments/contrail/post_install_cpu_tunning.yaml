@@ -1,13 +1,4 @@
-resources:
-    ExtraDeployments:
-      type: OS::Heat::StructuredDeployments
-      properties:
-        servers:  {get_param: servers}
-        config: {get_resource: ExtraConfig}
-        # Do this on CREATE/UPDATE (which is actually the default)
-        actions: ['CREATE', 'UPDATE']
 parameters: 
-
   ComputeKernelArgs:
     description: >
       Space seprated list of Kernel args to be update to grub.
@@ -22,6 +13,15 @@ parameters:
       Ex. HostCpusList: '4-12' will tune cores from 4-12
     type: string
     default: ""        
+
+resources:
+    ExtraDeployments:
+      type: OS::Heat::StructuredDeployments
+      properties:
+        servers:  {get_param: servers}
+        config: {get_resource: ExtraConfig}
+        # Do this on CREATE/UPDATE (which is actually the default)
+        actions: ['CREATE', 'UPDATE']
 
     ExtraConfig:
       type: OS::Heat::SoftwareConfig
@@ -50,7 +50,8 @@ parameters:
                sed 's/^\(GRUB_CMDLINE_LINUX=".*\)"/\1 $kernel_args isolcpus=$tuned_cores"/g' -i /etc/default/grub ;
                grub2-mkconfig -o /etc/grub2.cfg             
               fi
-            reboot
-          params: 
-            $kernel_args: {get_param: ComputeKernelArgs}
-            $tuned_cores: {get_param: HostIsolatedCoreList}        
+              reboot
+           
+            params: 
+              $kernel_args: {get_param: ComputeKernelArgs}
+              $tuned_cores: {get_param: HostIsolatedCoreList}        
