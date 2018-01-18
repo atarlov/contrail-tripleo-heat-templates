@@ -1,0 +1,56 @@
+resources:
+    ExtraDeployments:
+      type: OS::Heat::StructuredDeployments
+      properties:
+        servers:  {get_param: servers}
+        config: {get_resource: ExtraConfig}
+        # Do this on CREATE/UPDATE (which is actually the default)
+        actions: ['CREATE', 'UPDATE']
+parameters: 
+
+  ComputeKernelArgs:
+    description: >
+      Space seprated list of Kernel args to be update to grub.
+      The given args will be appended to existing args of GRUB_CMDLINE_LINUX in file /etc/default/grub
+      Example: "intel_iommu=on default_hugepagesz=1GB hugepagesz=1G hugepages=1"
+    type: string
+    default: ""
+  HostIsolatedCoreList:
+    description: >
+      A list or range of physical CPU cores to be tuned.
+      The given args will be appended to the tuned cpu-partitioning profile.
+      Ex. HostCpusList: '4-12' will tune cores from 4-12
+    type: string
+    default: ""        
+
+    ExtraConfig:
+      type: OS::Heat::SoftwareConfig
+      properties:
+        group: script
+        config:
+          str_replace:
+            template: |
+              #!/bin/bash
+              set -x
+              kernel_args=$kernel_args
+              tuned_cores=$tuned_cores
+              
+              if [[ `cat /tmp/rolename |awk -F"-" '{print $2}'` == "novacompute" ]]; then
+              # Configure tuned profile
+               tuned_conf_path="/etc/tuned/cpu-partitioning-variables.conf"
+               if [ -n "$tuned_cores" ]; then
+                 grep -q "^isolated_cores" $tuned_conf_path
+                 if [ "$?" -eq 0 ]; then
+                   sed -i 's/^isolated_cores=.*/isolated_cores=$tuned_cores/' $tuned_conf_path
+                 else
+                   echo "isolated_cores=$tuned_cores" >> $tuned_conf_path
+                 fi
+                 tuned-adm profile cpu-partitioning
+               fi 
+               sed 's/^\(GRUB_CMDLINE_LINUX=".*\)"/\1 $kernel_args isolcpus=$tuned_cores"/g' -i /etc/default/grub ;
+               grub2-mkconfig -o /etc/grub2.cfg             
+              fi
+            reboot
+          params: 
+            $kernel_args: {get_param: ComputeKernelArgs}
+            $tuned_cores: {get_param: HostIsolatedCoreList}        
