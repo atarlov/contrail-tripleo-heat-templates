@@ -101,19 +101,20 @@ parameters:
     description: Mapping of custom hostnames
     type: json
   ComputeKernelArgs:
+    default: ''
     description: >
       Space seprated list of Kernel args to be update to grub.
       The given args will be appended to existing args of GRUB_CMDLINE_LINUX in file /etc/default/grub
       Example: "intel_iommu=on default_hugepagesz=1GB hugepagesz=1G hugepages=1"
     type: string
-    default: ""
   HostIsolatedCoreList:
+    default: ''
     description: >
       A list or range of physical CPU cores to be tuned.
       The given args will be appended to the tuned cpu-partitioning profile.
       Ex. HostCpusList: '4-12' will tune cores from 4-12
     type: string
-    default: ""
+
 
 description: >
   This is an example showing how you can do firstboot configuration
