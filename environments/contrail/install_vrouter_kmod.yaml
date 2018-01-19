@@ -420,12 +420,7 @@ resources:
               ## for sriov do some tuninig 
               if [[ `cat /tmp/rolename |awk -F"-" '{print $2}'` == "sriov" ]]; then
 
-                ## contrail-vrouter-agent needed ? 
-                if [[ ${contrail_repo} ]]; then
-                  yum install -y contrail-vrouter-utils
-                fi
-
-              # Configure tuned profile
+              # Configure tuned profile as per document
 
                 tuned_conf_path="/etc/tuned/cpu-partitioning-variables.conf"
                 if [ -n "$tuned_cores" ]; then
