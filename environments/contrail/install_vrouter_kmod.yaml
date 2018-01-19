@@ -425,7 +425,7 @@ resources:
                 fi
 
               # Configure tuned profile
-              
+
                 tuned_conf_path="/etc/tuned/cpu-partitioning-variables.conf"
                 if [ -n "$tuned_cores" ]; then
                   grep -q "^isolated_cores" $tuned_conf_path
@@ -440,6 +440,7 @@ resources:
                 grub2-mkconfig -o /etc/grub2.cfg
                 
               fi
+              #reboot 
             fi 
             echo finishing...
             ifconfig
