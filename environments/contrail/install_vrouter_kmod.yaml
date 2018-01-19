@@ -327,7 +327,8 @@ resources:
                 reboot
               fi
             fi
-            if [[ `echo $role |awk -F"-" '{print $2}'` == "novacompute" || `echo $role |awk -F"-" '{print $2}'` == "contrailtsn" ]]; then
+            # if compute node / tsn / or sriov 
+            if [[ `echo $role |awk -F"-" '{print $2}'` == "novacompute" || `echo $role |awk -F"-" '{print $2}'` == "contrailtsn" || `cat /tmp/rolename |awk -F"-" '{print $2}'` == "sriov" ]]; then
               if [[ `echo $role |awk -F"-" '{print $2}'` == "contrailtsn" ]]; then
                 phy_int=${phy_tsn_int}
                 vlan_parent=${vlan_tsn_parent}
@@ -414,35 +415,36 @@ resources:
                   ip route add default via $def_gw
                 fi
               fi
-            fi
+            
+              ## for sriov do some tuninig 
+              if [[ `cat /tmp/rolename |awk -F"-" '{print $2}'` == "sriov" ]]; then
 
-            ## if role is sriov 
-            if [[ `cat /tmp/rolename |awk -F"-" '{print $2}'` == "sriov" ]]; then
-
-              ## contrail-vrouter-agent needed ? 
-              if [[ ${contrail_repo} ]]; then
-                yum install -y contrail-vrouter-utils
-              fi
-
-            # Configure tuned profile
-              tuned_conf_path="/etc/tuned/cpu-partitioning-variables.conf"
-              if [ -n "$tuned_cores" ]; then
-                grep -q "^isolated_cores" $tuned_conf_path
-                if [ "$?" -eq 0 ]; then
-                  sed -i 's/^isolated_cores=.*/isolated_cores=$tuned_cores/' $tuned_conf_path
-                else
-                  echo "isolated_cores=$tuned_cores" >> $tuned_conf_path
+                ## contrail-vrouter-agent needed ? 
+                if [[ ${contrail_repo} ]]; then
+                  yum install -y contrail-vrouter-utils
                 fi
-                tuned-adm profile cpu-partitioning
-              fi 
-              sed 's/^\(GRUB_CMDLINE_LINUX=".*\)"/\1 $kernel_args isolcpus=$tuned_cores"/g' -i /etc/default/grub ;
-              grub2-mkconfig -o /etc/grub2.cfg
+
+              # Configure tuned profile
               
+                tuned_conf_path="/etc/tuned/cpu-partitioning-variables.conf"
+                if [ -n "$tuned_cores" ]; then
+                  grep -q "^isolated_cores" $tuned_conf_path
+                  if [ "$?" -eq 0 ]; then
+                    sed -i 's/^isolated_cores=.*/isolated_cores=$tuned_cores/' $tuned_conf_path
+                  else
+                    echo "isolated_cores=$tuned_cores" >> $tuned_conf_path
+                  fi
+                  tuned-adm profile cpu-partitioning
+                fi 
+                sed 's/^\(GRUB_CMDLINE_LINUX=".*\)"/\1 $kernel_args isolcpus=$tuned_cores"/g' -i /etc/default/grub ;
+                grub2-mkconfig -o /etc/grub2.cfg
+                
+              fi
             fi 
             echo finishing...
             ifconfig
             ip route
-            reboot
+
           params:
             $phy_int: {get_param: VrouterPhysicalInterface}
             $phy_dpdk_int: {get_param: VrouterDpdkPhysicalInterface}
